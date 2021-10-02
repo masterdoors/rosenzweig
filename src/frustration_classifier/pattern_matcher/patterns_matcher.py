@@ -15,11 +15,47 @@ class Vertex:
         self.nots = nots
         self.vectorizer = vectorizer
         
-    def vectComp(self,lemma,lemmas):    
-        lemma_v = self.vectorizer.transform(lemma)
-        for l in lemmas:
-            if abs(cosine(lemma_v,l)) < 0.39:
-                return True
+    def vectComp(self,lemma,lemmas,vectors,all_lemmas):    
+        if lemma in vectors:
+            for l in lemmas:
+                if l in vectors[lemma]:
+                    dist = vectors[lemma][l]
+                    if dist < 0.39:
+                        return True
+                else:
+                    if l in all_lemmas:
+                        l_v = all_lemmas[l]
+                    else:  
+                        l_v = self.vectorizer.transform(l)
+                        all_lemmas[l] = l_v
+                    if lemma in all_lemmas: 
+                        lemma_v = all_lemmas[lemma]
+                    else:
+                        lemma_v = self.vectorizer.transform(lemma)
+                    dist = abs(cosine(lemma_v,l_v))
+                    vectors[lemma][l] = dist
+                    if dist < 0.39:
+                        return True
+        else:
+            if lemma in all_lemmas:
+                lemma_v = all_lemmas[lemma]
+            else:
+                lemma_v = self.vectorizer.transform(lemma)  
+                all_lemmas[lemma] = lemma_v
+
+            vectors[lemma] = {}
+            for l in lemmas:
+                if l in all_lemmas:
+                    l_v = all_lemmas[l]
+                else:  
+                    l_v = self.vectorizer.transform(l)
+                    all_lemmas[l] = l_v
+
+                dist = abs(cosine(lemma_v,l_v))
+                vectors[lemma][l] = dist
+                if dist < 0.39:
+                    return True
+
         return False    
         
     def getCommonPart(self,rule,clause):
@@ -50,14 +86,14 @@ class Vertex:
             
         return pred_sim * pred_arg                     
         
-    def compare(self,token):
+    def compare(self,token,vectors, all_lemmas):
         lemma_sim = 1
         if len(self.nots) > 0:
-            if self.vectComp(token["lemma"],self.nots):
+            if self.vectComp(token["lemma"],self.nots,vectors,all_lemmas):
                 lemma_sim = 0.
         else:            
             if len(self.lemmas) > 0:
-                lemma_sim = float(self.vectComp(token["lemma"],self.lemmas))    
+                lemma_sim = float(self.vectComp(token["lemma"],self.lemmas,vectors,all_lemmas))    
             
         return self.getSemSim(token)*self.getCommonPart(self.rule,token["morph"]) * lemma_sim
 
@@ -68,9 +104,9 @@ class Chain:
         self.parent_link_type = plink_type
         self.text = text
     
-    def compare(self,token):
+    def compare(self,token, vectors, all_lemmas):
         
-        c = self.vertex.compare(token)
+        c = self.vertex.compare(token, vectors, all_lemmas)
 
         if token["syn_parent"]:  
             if self.parent:
@@ -84,18 +120,18 @@ class Chain:
                 
                     if target_rule:
                         cur_token =  token["syn_parent"]
-                        res = target_rule.compare(cur_token)
+                        res = target_rule.compare(cur_token, vectors, all_lemmas)
                         while cur_token and res == 0:
                             cur_token = cur_token["syn_parent"] 
                             
                             if cur_token:
-                                res = target_rule.compare(cur_token)
+                                res = target_rule.compare(cur_token,vectors, all_lemmas)
                                 
                         return c * res    
                     else:
                         return c
                 if c > 0: 
-                    return c * self.parent.compare(token["syn_parent"])
+                    return c * self.parent.compare(token["syn_parent"],vectors,all_lemmas)
                 else:
                     return 0
             else:
@@ -110,6 +146,7 @@ class Rule:
     def __init__(self,dicts,lemm_vect):  
         self.dicts = dicts
         self.vectorizer = lemm_vect
+        self.all_lemmas = {}
         
     def from_struct(self,struct):
         self.chains = []
@@ -153,8 +190,14 @@ class Rule:
                     if "sem_role" in c:
                         arg_id = c["sem_role"]                    
                     
-                lemmas =  self.vectorizer.transform(lemmas)
-                nots = self.vectorizer.transform(nots)
+                lemmas_d =  self.vectorizer.transform(lemmas)
+                nots_d = self.vectorizer.transform(nots)
+
+                for l in lemmas_d:
+                    self.all_lemmas[l] = lemmas_d[l]
+                for l in nots_d: 
+                    self.all_lemmas[d] = nots_d[l]
+
                 vertex = Vertex(rule_,lemmas,directs, nots,is_pred,arg_id,self.vectorizer)
                 plink_type = None
                 if "syn_name" in c:
@@ -170,13 +213,14 @@ class Rule:
         dct_form = json.loads(js_str)
         self.from_struct(dct_form) 
         
-    def compare(self,clause,txt,verbose=False):
+    def compare(self,clause,txt,verbose=False,vectors={}):
+
         res = []
         for c in self.chains:
             if (not c.parent) and len(c.vertex.directs) > 0:
                 found = False
                 for phrase in c.vertex.directs:
-                    f_idx = txt.lower().find(phrase)                    
+                    f_idx = txt.find(phrase)                    
                     c1 = False
                     c2 = False
                     if f_idx > -1:
@@ -201,7 +245,7 @@ class Rule:
                     res.append(0)            
   
             else:    
-                item = c.compare(clause)
+                item = c.compare(clause, vectors, self.all_lemmas)
                 res.append(item)    
         return numpy.asarray((res))
 
