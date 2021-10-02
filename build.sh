@@ -1,2 +1,2 @@
 script_dir=$(dirname $0)
-docker build -t rosenzweig $script_dir
+docker build -t masterdoors/rosenzweig $script_dir
