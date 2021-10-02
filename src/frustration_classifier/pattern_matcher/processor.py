@@ -13,6 +13,8 @@ from isanlp.annotation_repr import CSentence
 from isanlp.ru.converter_mystem_to_ud import ConverterMystemToUd
 
 from pattern_matcher.patterns_matcher import Rule
+import time
+
 
 class Vectorizer:
     def __init__(self,path):
@@ -21,9 +23,9 @@ class Vectorizer:
         
     def transform(self,lemma=[]):    
         if isinstance(lemma, list) or isinstance(lemma, set):
-            res = []
+            res = {}
             for l in lemma:
-                res.append(self.model[l])
+                res[l]  = self.model[l]
             return res
         else:
             return self.model[lemma]
@@ -46,7 +48,7 @@ class Processor:
                 node["morph"] = morph
                 node["syn_parent"] = synt.parent
                 node["syn_name"] = synt.link_name
-                node["lemma"] = lemma
+                node["lemma"] = lemma #self.vectorizer.transform(lemma)
 
                 cll.append(node)
 
@@ -90,11 +92,11 @@ class Processor:
             
         self.verbose = verbose
         self.logger = logger          
+
         assert os.path.exists(patterns_folder), 'Pattern matcher: pattern folder is not found.'
         self.load_dicts(os.path.join(patterns_folder,"Dicts"))
         self.cat2rule = {}
-      
-        vectorizer = Vectorizer(ling_cfg['fastext_model'])
+        self.vectorizer = Vectorizer(ling_cfg['fastext_model'])
         
         for filename in os.listdir(patterns_folder):
             if filename.endswith(".json"):     
@@ -102,18 +104,17 @@ class Processor:
                     pattern_file = json.load(read_file)
                     
                 for k in pattern_file:
-                    self.cat2rule[k] = Rule(self.dicts,vectorizer)
+                    self.cat2rule[k] = Rule(self.dicts,self.vectorizer)
                     self.cat2rule[k].from_struct(pattern_file[k])
                 
                     if verbose:
                         logger.info ("Pattern ",k," was successully loaded ", str(len(self.cat2rule[k].chains)))
         
     def process(self,text,lemma,postag,morph,syntax_dep_tree,srl):
-
         lin_objects = self.objectifyClauses(text,lemma,postag,morph,syntax_dep_tree,srl)    
-
+        text_ = text.lower()
         i = 0
-        
+        vectors = {}
         rule_rept = []
         
         for clause in lin_objects:
@@ -122,7 +123,7 @@ class Processor:
                 total_score = numpy.zeros((len(self.cat2rule[k].chains),))
                 for clause_part in clause:
                     for tree_sample in clause_part:
-                        res = self.cat2rule[k].compare(tree_sample,text)
+                        res = self.cat2rule[k].compare(tree_sample,text_,vectors)
                         total_score += res
     
                 for t in total_score:
