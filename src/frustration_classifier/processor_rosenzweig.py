@@ -5,8 +5,8 @@ import yaml
 import numpy as np
 import logging
 
-logger = logging.getLogger('rosenzweig processor')
 logging.basicConfig(filename="/sample.log", level=logging.INFO)
+logger = logging.getLogger('rosenzweig')
  
 class ProcessorRosenzweig:
     def __init__(self, config_file):
@@ -21,7 +21,6 @@ class ProcessorRosenzweig:
     def __call__(self, text,tokens,sentences, postag, morph, lemma, syntax_dep_tree,srl):
         assert self._clf_model
         assert self._proc
-
         res = []
         for i,sent in enumerate(sentences):
             sbegin = sent.begin
@@ -34,6 +33,8 @@ class ProcessorRosenzweig:
             X_c = context_patterns
             Xpat = np.hstack([X_f,X_c]) 
             res.append(self._cfg['class_alias'][self._clf_model.predict(Xpat)[0]])
+
+
         return res
 
 
