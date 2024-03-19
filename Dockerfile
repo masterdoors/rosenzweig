@@ -3,11 +3,13 @@ FROM inemo/isanlp
 RUN apt-get update
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y liblzma-dev
 
+RUN apt-get install -yqq libffi-dev
+
 ENV PYENV_ROOT /opt/.pyenv
 RUN curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
 ENV PATH /opt/.pyenv/shims:/opt/.pyenv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-RUN pyenv install 3.6.4
-RUN pyenv global 3.6.4
+RUN pyenv install 3.7.17
+RUN pyenv global 3.7.17
 
 RUN pip install -U pip
 RUN python -m pip install -U cython
