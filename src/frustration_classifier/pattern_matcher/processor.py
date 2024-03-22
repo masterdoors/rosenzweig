@@ -108,7 +108,7 @@ class Processor:
                     self.cat2rule[k].from_struct(pattern_file[k])
                 
                     if verbose:
-                        logger.info ("Pattern ",k," was successully loaded ", str(len(self.cat2rule[k].chains)))
+                        logger.info ("Pattern " + str(k) + " was successully loaded " +  str(len(self.cat2rule[k].chains)))
         
     def process(self,text,lemma,postag,morph,syntax_dep_tree,srl):
         lin_objects = self.objectifyClauses(text,lemma,postag,morph,syntax_dep_tree,srl)    
