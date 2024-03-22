@@ -27,7 +27,7 @@ COPY pipeline_object.py /src/frustration_classifier/pipeline_object.py
 ## fastText embeddings
 COPY models /models/
 
-RUN curl -O https://rusvectores.org/static/models/rusvectores4/fasttext/araneum_none_fasttextskipgram_300_5_2018.tgz
+RUN curl -O http://nlp.isa.ru/frustration/araneum_none_fasttextskipgram_300_5_2018.tgz
 RUN tar -xf araneum_none_fasttextskipgram_300_5_2018.tgz -C models
 
 COPY models /models/
