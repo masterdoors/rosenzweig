@@ -34,6 +34,7 @@ class ProcessorRosenzweig:
             Xpat = np.hstack([X_f,X_c]) 
             proba = self._clf_model.predict_proba(Xpat)
             res.append(str({self._cfg['class_alias'][j]:p for j,p in enumerate(proba[0])}))
+
         return res
 
 
