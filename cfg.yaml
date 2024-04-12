@@ -4,11 +4,8 @@ patterns_path: /patterns/frust
 class_alias:
     0: E
     1: E'
-    2: I
-    3: I'
-    4: M
-    5: M'
-    6: e
-    7: i
-    8: m
-    9: inf
+    2: M
+    3: M'
+    4: e
+    5: i
+    6: inf
